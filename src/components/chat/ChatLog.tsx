@@ -31,8 +31,8 @@ export default function ChatLog() {
           </div>
         </div>
       ) : (
-        currentProject.history.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+        currentProject.history.map((message, index) => (
+          <MessageBubble key={message.id || `msg_${index}_${message.role}`} message={message} />
         ))
       )}
     </div>

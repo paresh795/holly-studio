@@ -53,7 +53,7 @@ A premium-minimal web interface for creative projects powered by the Holly n8n a
    
    Update `.env.local` with your credentials:
    ```env
-   # Supabase Configuration (optional for MVP)
+   # Supabase Configuration (required for long operations)
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
    
@@ -104,8 +104,20 @@ URLs are automatically detected in messages and rendered inline.
 When Holly is processing complex operations (like video rendering):
 - A spinner appears immediately
 - After 5 seconds, a banner explains long task behavior
-- Operations can take up to 10 minutes
+- Operations can take up to 20 minutes
 - The interface remains responsive throughout
+
+**Hybrid Monitoring System:**
+- **Quick Operations** (0-2 minutes): Direct webhook polling for immediate responses
+- **Long Operations** (2+ minutes): Database polling fallback for operations like video generation
+- **Resilient Design**: Survives gateway timeouts and infrastructure issues
+- **Smart Detection**: Monitors both AI responses and asset changes for completion
+- **Debug Mode**: Comprehensive logging shows exactly what the system is detecting
+
+**Monitoring Phases:**
+1. **Phase 1** (0-30s): Fast polling at 500ms intervals
+2. **Phase 2** (30s-2min): Medium polling at 2s intervals  
+3. **Phase 3** (2min+): Database polling every 15s with detailed state analysis
 
 ## Architecture
 

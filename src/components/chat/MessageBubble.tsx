@@ -5,11 +5,12 @@ import Image from 'next/image';
 import { Message } from '@/types';
 import { processMessageUrls } from '@/lib/media-detection';
 import { cn } from '@/lib/utils';
-import { AlertCircle, ExternalLink } from 'lucide-react';
-
-interface MessageBubbleProps {
-  message: Message;
-}
+import { AlertCircle, Bot, ExternalLink, User } from 'lucide-react';
+import {
+  ChatBubble,
+  ChatBubbleAvatar,
+  ChatBubbleMessage,
+} from '@/components/ui/chat-bubble';
 
 interface MediaItemProps {
   url: string;
@@ -25,7 +26,7 @@ function MediaItem({ url, type }: MediaItemProps) {
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1 text-holly-accent hover:underline"
+        className="inline-flex items-center gap-1 text-primary hover:underline"
       >
         <ExternalLink className="h-3 w-3" />
         {url}
@@ -43,6 +44,7 @@ function MediaItem({ url, type }: MediaItemProps) {
             width={400}
             height={256}
             className="object-contain w-full h-auto max-h-64 rounded-lg"
+            style={{ width: 'auto', height: 'auto' }}
             onClick={() => window.open(url, '_blank')}
             onError={() => setHasError(true)}
           />
@@ -75,7 +77,7 @@ function MediaItem({ url, type }: MediaItemProps) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-holly-accent hover:underline"
+          className="inline-flex items-center gap-1 text-primary hover:underline"
         >
           <ExternalLink className="h-3 w-3" />
           {url}
@@ -84,60 +86,46 @@ function MediaItem({ url, type }: MediaItemProps) {
   }
 }
 
-export default function MessageBubble({ message }: MessageBubbleProps) {
+export default function MessageBubble({ message }: { message: Message }) {
   const [mediaTypes, setMediaTypes] = useState<Array<{ url: string; type: string }>>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(true);
   
   useEffect(() => {
     async function detectMedia() {
       if (message.content) {
         setIsProcessing(true);
-        try {
           const types = await processMessageUrls(message.content);
           setMediaTypes(types);
-        } catch (error) {
-          console.error('Error processing media URLs:', error);
-        } finally {
+        setIsProcessing(false);
+      } else {
           setIsProcessing(false);
-        }
       }
     }
-    
     detectMedia();
   }, [message.content]);
   
   const isUser = message.role === 'user';
+  const variant = isUser ? 'sent' : 'received';
+
+  const AvatarIcon = isUser ? User : Bot;
   
   return (
-    <div className={cn(
-      "flex w-full mb-4",
-      isUser ? "justify-end" : "justify-start"
-    )}>
-      <div className={cn(
-        "max-w-[80%] rounded-lg p-3 space-y-2",
-        isUser 
-          ? "bg-holly-accent text-white" 
-          : "bg-card border border-border"
-      )}>
+    <ChatBubble variant={variant}>
+      <ChatBubbleAvatar
+        fallback={<AvatarIcon className="h-4 w-4" />}
+      />
+      <div className="flex flex-col gap-1 w-full max-w-[80%]">
+        <ChatBubbleMessage variant={variant}>
         {message.error && (
-          <div className="flex items-center gap-2 text-red-500 text-sm">
+            <div className="flex items-center gap-2 text-red-500 text-sm mb-2">
             <AlertCircle className="h-4 w-4" />
             Error: {message.error}
           </div>
         )}
+          <div className="whitespace-pre-wrap text-sm">{message.content}</div>
         
-        <div className="whitespace-pre-wrap text-sm">
-          {message.content}
-        </div>
-        
-        {(mediaTypes.length > 0 || isProcessing) && (
+          {(mediaTypes.length > 0) && (
           <div className="space-y-2 mt-3">
-            {isProcessing && (
-              <div className="text-xs text-muted-foreground">
-                Processing media...
-              </div>
-            )}
-            
             {mediaTypes.map((media, index) => (
               <div key={index} className="space-y-1">
                 <MediaItem url={media.url} type={media.type} />
@@ -145,14 +133,16 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
             ))}
           </div>
         )}
-        
-        <div className={cn(
-          "text-xs",
-          isUser ? "text-white/70" : "text-muted-foreground"
-        )}>
-          {new Date(message.timestamp).toLocaleTimeString()}
+        </ChatBubbleMessage>
+        <div
+          className={cn(
+            'text-xs text-muted-foreground',
+            isUser && 'self-end'
+          )}
+        >
+          {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
-    </div>
+    </ChatBubble>
   );
 }
